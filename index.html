@@ -13,12 +13,19 @@
     .top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
     .eyebrow { margin:0; color:var(--accent); font-size:13px; }
     h1 { margin:4px 0 0; font-size:32px; }
-    .badge { background:#e7f3ee; color:var(--accent); border-radius:999px; padding:6px 10px; font-size:12px; white-space:nowrap; }
+    .badge { background:#e7f3ee; color:var(--accent); border-radius:999px; padding:6px 10px; font-size:12px; }
     .lead { color:var(--muted); line-height:1.7; }
-    .grid { display:grid; gap:12px; }
+    .grid, .stack { display:grid; gap:12px; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
     .card h3 { margin:0 0 6px; }
-    .card p { margin:0; color:var(--muted); line-height:1.6; }
+    label { display:grid; gap:6px; font-size:14px; }
+    input, textarea, button.action { font:inherit; border-radius:12px; border:1px solid var(--line); padding:10px 12px; }
+    textarea { min-height:96px; resize:vertical; }
+    button.action { background:var(--ink); color:#fff; border:0; }
+    button.link { background:transparent; border:0; color:#8a3b32; padding:0; font:inherit; }
+    .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .muted { color:var(--muted); }
+    canvas { width:100%; height:auto; background:#fff; border-radius:12px; }
     .tabs { position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:min(480px,100%); display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:10px; background:#fffaf3ee; border-top:1px solid var(--line); }
     .tabs button { border:0; background:transparent; color:var(--muted); padding:10px 4px; border-radius:12px; font:inherit; }
     .tabs button.active { background:var(--ink); color:#fff; }
@@ -28,49 +35,143 @@
   <div class="app">
     <header class="top">
       <div>
-        <p class="eyebrow">بداية الواجهة</p>
-        <h1>Fran-ais</h1>
+        <p class="eyebrow">Fran-ais</p>
+        <h1>واجهة الدراسة</h1>
       </div>
-      <span class="badge">نسخة أولى</span>
+      <span class="badge">على جهازك</span>
     </header>
     <main id="screen"></main>
-    <nav class="tabs" aria-label="أقسام التطبيق">
+    <nav class="tabs">
       <button type="button" data-tab="home" class="active">الرئيسية</button>
       <button type="button" data-tab="study">الدراسة</button>
       <button type="button" data-tab="files">الملفات</button>
       <button type="button" data-tab="call">المكالمة</button>
     </nav>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script>
-    const screens = {
-      home: { title:"مرحباً", lead:"هذه بداية واجهة Fran-ais. التطبيق الكامل يُبنى على مراحل، وهذه الصفحة لا ترفع ملفات ولا تتصل بمكالمة.", cards:[{title:"الدراسة",text:"مواد الجامعة والجداول. قريباً."},{title:"ملفات PDF",text:"رفع الملفات وقراءتها. قريباً."},{title:"قراءة النصوص",text:"OCR للصور والمستندات. قريباً."},{title:"مكالمة مباشرة",text:"Live Call. قريباً."}] },
-      study: { title:"الدراسة", lead:"هذا القسم محجوز لمواد الجامعة. لا يوجد ربط جامعي بعد.", cards:[{title:"لا توجد مواد",text:"سيظهر هنا الجدول والمواد بعد الربط."}] },
-      files: { title:"الملفات", lead:"رفع PDF وOCR غير مفعّلين في هذه النسخة.", cards:[{title:"لا يوجد رفع",text:"لن يُحفظ أي ملف من هذه الصفحة الآن."}] },
-      call: { title:"المكالمة", lead:"المكالمة المباشرة غير متصلة.", cards:[{title:"غير متاح",text:"لا يوجد اتصال أو ميكروفون في هذه البداية."}] }
-    };
+    const KEY = "fran-ais-notes";
     const screen = document.getElementById("screen");
+    let pdfDoc = null, pageNo = 1;
+    function notes() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } }
+    function saveNotes(items) { localStorage.setItem(KEY, JSON.stringify(items)); }
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    }
+    function card(title, text) {
+      const box = el("article", "card");
+      box.append(el("h3", "", title), el("p", "muted", text));
+      return box;
+    }
     function render(tab) {
-      const data = screens[tab];
       screen.replaceChildren();
-      const heading = document.createElement("h2");
-      heading.textContent = data.title;
-      const lead = document.createElement("p");
-      lead.className = "lead";
-      lead.textContent = data.lead;
-      const grid = document.createElement("div");
-      grid.className = "grid";
-      data.cards.forEach((card) => {
-        const article = document.createElement("article");
-        article.className = "card";
-        const title = document.createElement("h3");
-        title.textContent = card.title;
-        const text = document.createElement("p");
-        text.textContent = card.text;
-        article.append(title, text);
-        grid.append(article);
-      });
-      screen.append(heading, lead, grid);
+      if (tab === "home") {
+        screen.append(el("p", "lead", "الملاحظات تنحفظ على هذا الجهاز فقط. فتح PDF وقراءة الصورة يشتغلان من المتصفح، وما ينرفع شيء لخادم."), card("الدراسة", "أضف مادة وملاحظة، وتبقى محفوظة هنا."), card("الملفات", "افتح PDF أو صورة من جهازك."), card("المكالمة", "غير متصلة. ما في اتصال مباشر في هذه النسخة."));
+      }
+      if (tab === "study") renderStudy();
+      if (tab === "files") renderFiles();
+      if (tab === "call") screen.append(el("h2", "", "المكالمة"), el("p", "lead", "المكالمة المباشرة تحتاج خادم اتصال. ما راح أفتح الميكروفون أو أزيف مكالمة."));
       document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+    }
+    function renderStudy() {
+      screen.append(el("h2", "", "الدراسة"));
+      const form = el("form", "card stack");
+      const subject = document.createElement("input");
+      subject.placeholder = "اسم المادة";
+      subject.required = true;
+      const note = document.createElement("textarea");
+      note.placeholder = "الملاحظة";
+      note.required = true;
+      const submit = el("button", "action", "حفظ");
+      submit.type = "submit";
+      form.append(el("label", "", "المادة"), subject, el("label", "", "الملاحظة"), note, submit);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const items = notes();
+        items.unshift({ id: Date.now(), subject: subject.value.trim(), note: note.value.trim() });
+        saveNotes(items);
+        renderStudy();
+      });
+      const list = el("div", "stack");
+      notes().forEach((item) => {
+        const box = el("article", "card");
+        const head = el("div", "row");
+        head.append(el("h3", "", item.subject));
+        const remove = el("button", "link", "حذف");
+        remove.type = "button";
+        remove.addEventListener("click", () => { saveNotes(notes().filter((entry) => entry.id !== item.id)); renderStudy(); });
+        head.append(remove);
+        box.append(head, el("p", "", item.note));
+        list.append(box);
+      });
+      if (!notes().length) list.append(el("p", "muted", "لا توجد ملاحظات بعد."));
+      screen.append(form, list);
+    }
+    function renderFiles() {
+      screen.append(el("h2", "", "الملفات"), el("p", "lead", "الملف يبقى على جهازك. أول قراءة لصورة قد تأخذ وقتاً لأن أداة القراءة تتحمّل من الإنترنت."));
+      const pdfCard = el("article", "card stack");
+      const pdfInput = document.createElement("input");
+      pdfInput.type = "file";
+      pdfInput.accept = "application/pdf";
+      const pdfStatus = el("p", "muted", "لم يُفتح ملف بعد.");
+      const viewer = el("div", "stack");
+      pdfInput.addEventListener("change", () => openPdf(pdfInput.files[0], pdfStatus, viewer));
+      pdfCard.append(el("h3", "", "PDF"), pdfInput, pdfStatus, viewer);
+      const ocrCard = el("article", "card stack");
+      const imageInput = document.createElement("input");
+      imageInput.type = "file";
+      imageInput.accept = "image/*";
+      const ocrStatus = el("p", "muted", "لم تُختر صورة بعد.");
+      const result = document.createElement("textarea");
+      result.readOnly = true;
+      imageInput.addEventListener("change", () => readImage(imageInput.files[0], ocrStatus, result));
+      ocrCard.append(el("h3", "", "قراءة صورة"), imageInput, ocrStatus, result);
+      screen.append(pdfCard, ocrCard);
+    }
+    async function openPdf(file, status, viewer) {
+      if (!file || !window.pdfjsLib) { status.textContent = "تعذر تحميل قارئ PDF. تأكد من الإنترنت ثم أعد فتح الصفحة."; return; }
+      status.textContent = "جاري الفتح...";
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      pdfDoc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      pageNo = 1;
+      await showPage(status, viewer);
+    }
+    async function showPage(status, viewer) {
+      const page = await pdfDoc.getPage(pageNo);
+      const canvas = document.createElement("canvas");
+      const viewport = page.getViewport({ scale: 1.2 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      const nav = el("div", "row");
+      const prev = el("button", "action", "السابق");
+      const next = el("button", "action", "التالي");
+      prev.type = next.type = "button";
+      prev.disabled = pageNo === 1;
+      next.disabled = pageNo === pdfDoc.numPages;
+      prev.addEventListener("click", async () => { pageNo -= 1; await showPage(status, viewer); });
+      next.addEventListener("click", async () => { pageNo += 1; await showPage(status, viewer); });
+      nav.append(prev, el("span", "", pageNo + " / " + pdfDoc.numPages), next);
+      viewer.replaceChildren(nav, canvas);
+      status.textContent = "تم الفتح على جهازك.";
+    }
+    async function readImage(file, status, result) {
+      if (!file || !window.Tesseract) { status.textContent = "تعذر تحميل أداة القراءة. تأكد من الإنترنت ثم أعد المحاولة."; return; }
+      status.textContent = "جاري القراءة، قد يأخذ هذا دقيقة...";
+      result.value = "";
+      try {
+        const worker = await Tesseract.createWorker("ara+eng");
+        const output = await worker.recognize(file);
+        result.value = output.data.text.trim() || "لم يُعثر على نص واضح.";
+        await worker.terminate();
+        status.textContent = "تمت القراءة على جهازك.";
+      } catch (error) {
+        status.textContent = "فشلت القراءة. جرّب صورة أوضح أو اتصال إنترنت أقوى.";
+      }
     }
     document.querySelector(".tabs").addEventListener("click", (event) => {
       const button = event.target.closest("button");
