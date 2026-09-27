@@ -2,182 +2,165 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#14241e">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fran-ais</title>
   <style>
-    :root { --ink:#14241e; --paper:#f4efe6; --card:#fffaf3; --line:#e4d8c8; --accent:#1f6b52; --muted:#6d6256; }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:"Segoe UI",Tahoma,sans-serif; background:var(--paper); color:var(--ink); }
-    .app { max-width:480px; min-height:100vh; margin:0 auto; padding:20px 16px 96px; }
-    .top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-    .eyebrow { margin:0; color:var(--accent); font-size:13px; }
-    h1 { margin:4px 0 0; font-size:32px; }
-    .badge { background:#e7f3ee; color:var(--accent); border-radius:999px; padding:6px 10px; font-size:12px; }
-    .lead { color:var(--muted); line-height:1.7; }
-    .grid, .stack { display:grid; gap:12px; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
-    .card h3 { margin:0 0 6px; }
-    label { display:grid; gap:6px; font-size:14px; }
-    input, textarea, button.action { font:inherit; border-radius:12px; border:1px solid var(--line); padding:10px 12px; }
-    textarea { min-height:96px; resize:vertical; }
-    button.action { background:var(--ink); color:#fff; border:0; }
-    button.link { background:transparent; border:0; color:#8a3b32; padding:0; font:inherit; }
-    .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .muted { color:var(--muted); }
-    canvas { width:100%; height:auto; background:#fff; border-radius:12px; }
-    .tabs { position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:min(480px,100%); display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:10px; background:#fffaf3ee; border-top:1px solid var(--line); }
-    .tabs button { border:0; background:transparent; color:var(--muted); padding:10px 4px; border-radius:12px; font:inherit; }
-    .tabs button.active { background:var(--ink); color:#fff; }
+    body{margin:0;font-family:system-ui,sans-serif;background:#f5f5f5;color:#222}
+    .wrap{max-width:520px;margin:0 auto;padding:20px 16px 90px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    h1{margin:0;font-size:28px}
+    .badge{background:#e0f0ff;color:#0066cc;padding:4px 10px;border-radius:999px;font-size:12px}
+    nav{display:flex;gap:8px;margin-bottom:16px;overflow:auto;padding-bottom:4px}
+    nav button{border:0;background:#ddd;padding:8px 12px;border-radius:999px;font:inherit;cursor:pointer}
+    nav button.active{background:#222;color:#fff}
+    section{background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px;margin-bottom:12px}
+    label{display:block;margin-bottom:8px;font-weight:600}
+    input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font:inherit;margin-bottom:8px}
+    button.action{background:#222;color:#fff;border:0;padding:10px 14px;border-radius:8px;font:inherit;cursor:pointer}
+    .muted{color:#666;font-size:14px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .link{background:0;border:0;color:#0066cc;font:inherit;cursor:pointer}
+    canvas{width:100%;height:auto;background:#fff;border-radius:8px}
+    .tabs{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(520px,100%);display:flex;gap:6px;padding:10px;background:#fff;border-top:1px solid #ddd}
+    .tabs button{flex:1;border:0;background:#eee;padding:10px;border-radius:10px;font:inherit}
+    .tabs button.active{background:#222;color:#fff}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="top">
-      <div>
-        <p class="eyebrow">Fran-ais</p>
-        <h1>واجهة الدراسة</h1>
-      </div>
-      <span class="badge">على جهازك</span>
+  <div class="wrap">
+    <header>
+      <h1>Fran-ais</h1>
+      <span class="badge">نسخة بسيطة</span>
     </header>
-    <main id="screen"></main>
-    <nav class="tabs">
-      <button type="button" data-tab="home" class="active">الرئيسية</button>
-      <button type="button" data-tab="study">الدراسة</button>
-      <button type="button" data-tab="files">الملفات</button>
-      <button type="button" data-tab="call">المكالمة</button>
-    </nav>
+    <nav id="topNav"></nav>
+    <div id="content"></div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <nav class="tabs">
+    <button data-tab="home">الرئيسية</button>
+    <button data-tab="study">الدراسة</button>
+    <button data-tab="files">الملفات</button>
+    <button data-tab="call">المكالمة</button>
+  </nav>
   <script>
     const KEY = "fran-ais-notes";
-    const screen = document.getElementById("screen");
-    let pdfDoc = null, pageNo = 1;
-    function notes() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; } }
-    function saveNotes(items) { localStorage.setItem(KEY, JSON.stringify(items)); }
-    function el(tag, className, text) {
-      const node = document.createElement(tag);
-      if (className) node.className = className;
-      if (text) node.textContent = text;
-      return node;
-    }
-    function card(title, text) {
-      const box = el("article", "card");
-      box.append(el("h3", "", title), el("p", "muted", text));
-      return box;
-    }
-    function render(tab) {
-      screen.replaceChildren();
-      if (tab === "home") {
-        screen.append(el("p", "lead", "الملاحظات تنحفظ على هذا الجهاز فقط. فتح PDF وقراءة الصورة يشتغلان من المتصفح، وما ينرفع شيء لخادم."), card("الدراسة", "أضف مادة وملاحظة، وتبقى محفوظة هنا."), card("الملفات", "افتح PDF أو صورة من جهازك."), card("المكالمة", "غير متصلة. ما في اتصال مباشر في هذه النسخة."));
+    const content = document.getElementById("content");
+    const topNav = document.getElementById("topNav");
+    let pdfDoc = null, pageNum = 1;
+    function notes(){ try{ return JSON.parse(localStorage.getItem(KEY)||"[]"); }catch{ return []; } }
+    function saveNotes(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+    function render(tab){
+      topNav.innerHTML = "";
+      content.innerHTML = "";
+      if(tab === "home"){
+        topNav.innerHTML = "<span class='muted'>Fran-ais: واجهة دراسة بسيطة</span>";
+        content.innerHTML = "<section><h3>مرحباً</h3><p class='muted'>هذه نسخة بسيطة: ملاحظات، PDF، وقراءة صورة. المكالمة غير متصلة.</p></section>";
       }
-      if (tab === "study") renderStudy();
-      if (tab === "files") renderFiles();
-      if (tab === "call") screen.append(el("h2", "", "المكالمة"), el("p", "lead", "المكالمة المباشرة تحتاج خادم اتصال. ما راح أفتح الميكروفون أو أزيف مكالمة."));
-      document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
-    }
-    function renderStudy() {
-      screen.append(el("h2", "", "الدراسة"));
-      const form = el("form", "card stack");
-      const subject = document.createElement("input");
-      subject.placeholder = "اسم المادة";
-      subject.required = true;
-      const note = document.createElement("textarea");
-      note.placeholder = "الملاحظة";
-      note.required = true;
-      const submit = el("button", "action", "حفظ");
-      submit.type = "submit";
-      form.append(el("label", "", "المادة"), subject, el("label", "", "الملاحظة"), note, submit);
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const items = notes();
-        items.unshift({ id: Date.now(), subject: subject.value.trim(), note: note.value.trim() });
-        saveNotes(items);
-        renderStudy();
-      });
-      const list = el("div", "stack");
-      notes().forEach((item) => {
-        const box = el("article", "card");
-        const head = el("div", "row");
-        head.append(el("h3", "", item.subject));
-        const remove = el("button", "link", "حذف");
-        remove.type = "button";
-        remove.addEventListener("click", () => { saveNotes(notes().filter((entry) => entry.id !== item.id)); renderStudy(); });
-        head.append(remove);
-        box.append(head, el("p", "", item.note));
-        list.append(box);
-      });
-      if (!notes().length) list.append(el("p", "muted", "لا توجد ملاحظات بعد."));
-      screen.append(form, list);
-    }
-    function renderFiles() {
-      screen.append(el("h2", "", "الملفات"), el("p", "lead", "الملف يبقى على جهازك. أول قراءة لصورة قد تأخذ وقتاً لأن أداة القراءة تتحمّل من الإنترنت."));
-      const pdfCard = el("article", "card stack");
-      const pdfInput = document.createElement("input");
-      pdfInput.type = "file";
-      pdfInput.accept = "application/pdf";
-      const pdfStatus = el("p", "muted", "لم يُفتح ملف بعد.");
-      const viewer = el("div", "stack");
-      pdfInput.addEventListener("change", () => openPdf(pdfInput.files[0], pdfStatus, viewer));
-      pdfCard.append(el("h3", "", "PDF"), pdfInput, pdfStatus, viewer);
-      const ocrCard = el("article", "card stack");
-      const imageInput = document.createElement("input");
-      imageInput.type = "file";
-      imageInput.accept = "image/*";
-      const ocrStatus = el("p", "muted", "لم تُختر صورة بعد.");
-      const result = document.createElement("textarea");
-      result.readOnly = true;
-      imageInput.addEventListener("change", () => readImage(imageInput.files[0], ocrStatus, result));
-      ocrCard.append(el("h3", "", "قراءة صورة"), imageInput, ocrStatus, result);
-      screen.append(pdfCard, ocrCard);
-    }
-    async function openPdf(file, status, viewer) {
-      if (!file || !window.pdfjsLib) { status.textContent = "تعذر تحميل قارئ PDF. تأكد من الإنترنت ثم أعد فتح الصفحة."; return; }
-      status.textContent = "جاري الفتح...";
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      pdfDoc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      pageNo = 1;
-      await showPage(status, viewer);
-    }
-    async function showPage(status, viewer) {
-      const page = await pdfDoc.getPage(pageNo);
-      const canvas = document.createElement("canvas");
-      const viewport = page.getViewport({ scale: 1.2 });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-      const nav = el("div", "row");
-      const prev = el("button", "action", "السابق");
-      const next = el("button", "action", "التالي");
-      prev.type = next.type = "button";
-      prev.disabled = pageNo === 1;
-      next.disabled = pageNo === pdfDoc.numPages;
-      prev.addEventListener("click", async () => { pageNo -= 1; await showPage(status, viewer); });
-      next.addEventListener("click", async () => { pageNo += 1; await showPage(status, viewer); });
-      nav.append(prev, el("span", "", pageNo + " / " + pdfDoc.numPages), next);
-      viewer.replaceChildren(nav, canvas);
-      status.textContent = "تم الفتح على جهازك.";
-    }
-    async function readImage(file, status, result) {
-      if (!file || !window.Tesseract) { status.textContent = "تعذر تحميل أداة القراءة. تأكد من الإنترنت ثم أعد المحاولة."; return; }
-      status.textContent = "جاري القراءة، قد يأخذ هذا دقيقة...";
-      result.value = "";
-      try {
-        const worker = await Tesseract.createWorker("ara+eng");
-        const output = await worker.recognize(file);
-        result.value = output.data.text.trim() || "لم يُعثر على نص واضح.";
-        await worker.terminate();
-        status.textContent = "تمت القراءة على جهازك.";
-      } catch (error) {
-        status.textContent = "فشلت القراءة. جرّب صورة أوضح أو اتصال إنترنت أقوى.";
+      if(tab === "study"){
+        topNav.innerHTML = "<span class='muted'>الدراسة</span>";
+        const form = document.createElement("section");
+        form.innerHTML = "<h3>إضافة ملاحظة</h3><label>المادة</label><input id='subj' placeholder='اسم المادة'><label>الملاحظة</label><textarea id='nt' placeholder='اكتب هنا'></textarea><button class='action'>حفظ</button>";
+        form.querySelector(".action").onclick = () => {
+          const s = form.querySelector("#subj").value.trim();
+          const n = form.querySelector("#nt").value.trim();
+          if(!s || !n) return alert("أكمل المادة والملاحظة");
+          const arr = notes();
+          arr.unshift({id:Date.now(), s, n});
+          saveNotes(arr);
+          form.querySelector("#subj").value = "";
+          form.querySelector("#nt").value = "";
+          renderStudyList();
+        };
+        content.appendChild(form);
+        renderStudyList();
       }
+      if(tab === "files"){
+        topNav.innerHTML = "<span class='muted'>الملفات</span>";
+        const pdfSec = document.createElement("section");
+        pdfSec.innerHTML = "<h3>PDF</h3><input type='file' id='pdf' accept='application/pdf'><p class='muted' id='pdfSt'>لم يُفتح ملف بعد.</p><div id='pdfV'></div>";
+        content.appendChild(pdfSec);
+        const ocrSec = document.createElement("section");
+        ocrSec.innerHTML = "<h3>قراءة صورة</h3><input type='file' id='img' accept='image/*'><p class='muted' id='ocrSt'>لم تُختر صورة بعد.</p><textarea id='ocrR' readonly></textarea>";
+        content.appendChild(ocrSec);
+        pdfSec.querySelector("#pdf").onchange = async (e) => {
+          const f = e.target.files[0];
+          if(!f) return;
+          if(!window.pdfjsLib){ document.getElementById("pdfSt").textContent = "قارئ PDF غير محمّل. أعد فتح الصفحة."; return; }
+          document.getElementById("pdfSt").textContent = "جاري الفتح...";
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          pdfDoc = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+          pageNum = 1;
+          showPdfPage();
+          document.getElementById("pdfSt").textContent = "تم الفتح على جهازك.";
+        };
+        ocrSec.querySelector("#img").onchange = async (e) => {
+          const f = e.target.files[0];
+          if(!f) return;
+          if(!window.Tesseract){ document.getElementById("ocrSt").textContent = "أداة القراءة غير محمّلة. أعد فتح الصفحة."; return; }
+          document.getElementById("ocrSt").textContent = "جاري القراءة...";
+          document.getElementById("ocrR").value = "";
+          try {
+            const w = await Tesseract.createWorker("ara+eng");
+            const o = await w.recognize(f);
+            document.getElementById("ocrR").value = (o.data.text || "").trim() || "لم يُعثر على نص.";
+            await w.terminate();
+            document.getElementById("ocrSt").textContent = "تمت القراءة على جهازك.";
+          } catch(err) {
+            document.getElementById("ocrSt").textContent = "فشلت القراءة. جرّب صورة أوضح.";
+          }
+        };
+      }
+      if(tab === "call"){
+        topNav.innerHTML = "<span class='muted'>المكالمة</span>";
+        content.innerHTML = "<section><h3>المكالمة</h3><p class='muted'>المكالمة المباشرة تحتاج خادم. ما راح أفتح الميكروفون أو أزيف مكالمة.</p></section>";
+      }
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     }
-    document.querySelector(".tabs").addEventListener("click", (event) => {
-      const button = event.target.closest("button");
-      if (button) render(button.dataset.tab);
-    });
+    async function showPdfPage(){
+      const page = await pdfDoc.getPage(pageNum);
+      const c = document.createElement("canvas");
+      const v = page.getViewport({scale:1.2});
+      c.width = v.width; c.height = v.height;
+      await page.render({canvasContext:c.getContext("2d"), viewport}).promise;
+      const nav = document.createElement("div");
+      nav.className = "row";
+      const prev = document.createElement("button");
+      prev.textContent = "السابق"; prev.className = "action"; prev.disabled = pageNum === 1;
+      const next = document.createElement("button");
+      next.textContent = "التالي"; next.className = "action"; next.disabled = pageNum === pdfDoc.numPages;
+      prev.onclick = async () => { pageNum--; await showPdfPage(); }
+      next.onclick = async () => { pageNum++; await showPdfPage(); }
+      const info = document.createElement("span");
+      info.textContent = pageNum + " / " + pdfDoc.numPages;
+      nav.append(prev, info, next, c);
+      document.getElementById("pdfV").replaceChildren(nav);
+    }
+    function renderStudyList(){
+      const list = document.createElement("section");
+      list.innerHTML = "<h3>الملاحظات</h3>";
+      const arr = notes();
+      if(!arr.length){ list.innerHTML += "<p class='muted'>لا توجد ملاحظات بعد.</p>"; }
+      arr.forEach(it => {
+        const box = document.createElement("div");
+        box.style.cssText = "border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:8px";
+        const head = document.createElement("div");
+        head.className = "row";
+        head.innerHTML = "<strong>"+it.s+"</strong>";
+        const del = document.createElement("button");
+        del.textContent = "حذف"; del.className = "link";
+        del.onclick = () => { saveNotes(notes().filter(x=>x.id!==it.id)); renderStudyList(); };
+        head.appendChild(del);
+        box.append(head, document.createElement("div").appendChild(document.createTextNode(it.n)).parentNode);
+        list.appendChild(box);
+      });
+      content.appendChild(list);
+    }
+    document.querySelector(".tabs").onclick = (e) => {
+      const b = e.target.closest("button");
+      if(b) render(b.dataset.tab);
+    };
     render("home");
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </body>
 </html>
