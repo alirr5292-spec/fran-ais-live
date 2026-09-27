@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14241e">
+  <title>Fran-ais</title>
+  <style>
+    :root { --ink:#14241e; --paper:#f4efe6; --card:#fffaf3; --line:#e4d8c8; --accent:#1f6b52; --muted:#6d6256; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Tahoma,sans-serif; background:var(--paper); color:var(--ink); }
+    .app { max-width:480px; min-height:100vh; margin:0 auto; padding:20px 16px 96px; }
+    .top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .eyebrow { margin:0; color:var(--accent); font-size:13px; }
+    h1 { margin:4px 0 0; font-size:32px; }
+    .badge { background:#e7f3ee; color:var(--accent); border-radius:999px; padding:6px 10px; font-size:12px; white-space:nowrap; }
+    .lead { color:var(--muted); line-height:1.7; }
+    .grid { display:grid; gap:12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
+    .card h3 { margin:0 0 6px; }
+    .card p { margin:0; color:var(--muted); line-height:1.6; }
+    .tabs { position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:min(480px,100%); display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:10px; background:#fffaf3ee; border-top:1px solid var(--line); }
+    .tabs button { border:0; background:transparent; color:var(--muted); padding:10px 4px; border-radius:12px; font:inherit; }
+    .tabs button.active { background:var(--ink); color:#fff; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div>
+        <p class="eyebrow">بداية الواجهة</p>
+        <h1>Fran-ais</h1>
+      </div>
+      <span class="badge">نسخة أولى</span>
+    </header>
+    <main id="screen"></main>
+    <nav class="tabs" aria-label="أقسام التطبيق">
+      <button type="button" data-tab="home" class="active">الرئيسية</button>
+      <button type="button" data-tab="study">الدراسة</button>
+      <button type="button" data-tab="files">الملفات</button>
+      <button type="button" data-tab="call">المكالمة</button>
+    </nav>
+  </div>
+  <script>
+    const screens = {
+      home: { title:"مرحباً", lead:"هذه بداية واجهة Fran-ais. التطبيق الكامل يُبنى على مراحل، وهذه الصفحة لا ترفع ملفات ولا تتصل بمكالمة.", cards:[{title:"الدراسة",text:"مواد الجامعة والجداول. قريباً."},{title:"ملفات PDF",text:"رفع الملفات وقراءتها. قريباً."},{title:"قراءة النصوص",text:"OCR للصور والمستندات. قريباً."},{title:"مكالمة مباشرة",text:"Live Call. قريباً."}] },
+      study: { title:"الدراسة", lead:"هذا القسم محجوز لمواد الجامعة. لا يوجد ربط جامعي بعد.", cards:[{title:"لا توجد مواد",text:"سيظهر هنا الجدول والمواد بعد الربط."}] },
+      files: { title:"الملفات", lead:"رفع PDF وOCR غير مفعّلين في هذه النسخة.", cards:[{title:"لا يوجد رفع",text:"لن يُحفظ أي ملف من هذه الصفحة الآن."}] },
+      call: { title:"المكالمة", lead:"المكالمة المباشرة غير متصلة.", cards:[{title:"غير متاح",text:"لا يوجد اتصال أو ميكروفون في هذه البداية."}] }
+    };
+    const screen = document.getElementById("screen");
+    function render(tab) {
+      const data = screens[tab];
+      screen.replaceChildren();
+      const heading = document.createElement("h2");
+      heading.textContent = data.title;
+      const lead = document.createElement("p");
+      lead.className = "lead";
+      lead.textContent = data.lead;
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      data.cards.forEach((card) => {
+        const article = document.createElement("article");
+        article.className = "card";
+        const title = document.createElement("h3");
+        title.textContent = card.title;
+        const text = document.createElement("p");
+        text.textContent = card.text;
+        article.append(title, text);
+        grid.append(article);
+      });
+      screen.append(heading, lead, grid);
+      document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+    }
+    document.querySelector(".tabs").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (button) render(button.dataset.tab);
+    });
+    render("home");
+  </script>
+</body>
+</html>
